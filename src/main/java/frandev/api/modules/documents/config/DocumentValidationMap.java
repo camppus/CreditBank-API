@@ -126,25 +126,6 @@ public final class DocumentValidationMap {
                     )
             ),
 
-            DocumentType.PROOF_OF_ADDRESS, List.of(
-
-                    new FileDefinition(
-                            "DOCUMENT",
-                            true,
-                            List.of(
-                                    DOCUMENT_QUALITY,
-                                    DOCUMENT_CLASSIFICATION,
-                                    DOCUMENT_FORMAT,
-                                    DOCUMENT_READABILITY,
-                                    OCR,
-                                    DOCUMENT_STRUCTURE,
-                                    DOCUMENT_EXPIRATION,
-                                    DOCUMENT_AUTHENTICITY,
-                                    DOCUMENT_TAMPERING
-                            )
-                    )
-            ),
-
             DocumentType.BANK_STATEMENT, List.of(
 
                     new FileDefinition(
