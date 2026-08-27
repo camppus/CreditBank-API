@@ -1,5 +1,6 @@
 package frandev.api.modules.auth.entities;
 
+import frandev.api.modules.auth.application.constants.AuthConsts;
 import frandev.api.shared.entities.Entity;
 import frandev.api.shared.entities.Hash;
 import lombok.Getter;
@@ -10,14 +11,18 @@ import java.util.UUID;
 @Getter
 public class Challenge extends Entity {
 
-    private static final int MAX_ATTEMPTS = 5;
     private final UUID userId;
-    private final Hash hash;
-    private final Instant expiresAt;
-    private  final UUID userDeviceId;
+    private final UUID userDeviceId;
+    private final ChallangeContext context;
+    private final ChallengeChannel channel;
+
+    private Hash hash;
+    private Instant expiresAt;
+
     private boolean used;
     private int attempts;
-    private final ChallangeContext context;
+    private int resendCount;
+    private Instant lastResendAt;
 
     public Challenge(
             UUID id,
@@ -27,24 +32,33 @@ public class Challenge extends Entity {
             Instant expiresAt,
             boolean used,
             int attempts,
+            int resendCount,
+            Instant lastResendAt,
             ChallangeContext context,
-            Instant created,
-            Instant updated
+            ChallengeChannel channel,
+            Instant createdAt,
+            Instant updatedAt
     ) {
-        super(id, created, updated);
+        super(id, createdAt, updatedAt);
 
         this.userId = userId;
+        this.userDeviceId = userDeviceId;
         this.hash = hash;
         this.expiresAt = expiresAt;
         this.used = used;
         this.attempts = attempts;
+        this.resendCount = resendCount;
+        this.lastResendAt = lastResendAt;
         this.context = context;
-        this.userDeviceId = userDeviceId;
+        this.channel = channel;
+
+
     }
 
     public boolean isExpired() {
         return Instant.now().isAfter(expiresAt);
     }
+
 
     public boolean isUsed() {
         return used;
@@ -53,31 +67,7 @@ public class Challenge extends Entity {
     public boolean canAttempt() {
         return !used
                 && !isExpired()
-                && attempts < MAX_ATTEMPTS;
-    }
-
-    public boolean isValid() {
-        return canAttempt();
-    }
-
-    public int remainingAttempts() {
-        return Math.max(0, MAX_ATTEMPTS - attempts);
-    }
-
-    public void attempt() {
-        ensureCanAttempt();
-
-        attempts++;
-
-        if (attempts >= MAX_ATTEMPTS) {
-            used = true;
-        }
-    }
-
-    public void use() {
-        ensureCanAttempt();
-        used = true;
-        this.touch();
+                && attempts < AuthConsts.CHALLENGE_MAX_ATTEMPTS;
     }
 
     public void ensureCanAttempt() {
@@ -89,9 +79,93 @@ public class Challenge extends Entity {
             throw new IllegalStateException("Challenge expired");
         }
 
-        if (attempts >= MAX_ATTEMPTS) {
+        if (attempts >= AuthConsts.CHALLENGE_MAX_ATTEMPTS) {
             throw new IllegalStateException("Maximum attempts exceeded");
         }
     }
 
+
+    public boolean isResendAllowed() {
+
+        if (used) {
+            return false;
+        }
+
+        if (resendCount >= AuthConsts.MAX_CHALLENGE_RESENDS) {
+            return false;
+        }
+
+        if (lastResendAt == null) {
+            return true;
+        }
+
+        return !lastResendAt
+                .plusSeconds(AuthConsts.RESEND_COOLDOWN_SECONDS)
+                .isAfter(Instant.now());
+    }
+
+
+
+    public void increaseAttempts() {
+        ensureCanAttempt();
+        this.attempts++;
+
+        if (this.attempts >= AuthConsts.CHALLENGE_MAX_ATTEMPTS) {
+            this.used = true;
+        }
+
+        touch();
+    }
+
+
+    public void increaseResend() {
+        if (!isResendAllowed()) {
+            throw new IllegalStateException(
+                    "Challenge cannot be resent"
+            );
+        }
+
+        this.resendCount++;
+        this.lastResendAt = Instant.now();
+        touch();
+    }
+
+    public void use() {
+        ensureCanAttempt();
+
+        used = true;
+        touch();
+    }
+
+    public int remainingAttempts() {
+        return Math.max(
+                0,
+                AuthConsts.CHALLENGE_MAX_ATTEMPTS - attempts
+        );
+    }
+
+    public int remainingResends() {
+        return Math.max(
+                0,
+                AuthConsts.MAX_CHALLENGE_RESENDS - resendCount
+        );
+    }
+
+    public void resend(
+            Hash hash,
+            Instant expiresAt
+    ) {
+        if (!isResendAllowed()) {
+            throw new IllegalStateException(
+                    "Challenge cannot be resent"
+            );
+        }
+
+        this.hash = hash;
+        this.expiresAt = expiresAt;
+        this.resendCount++;
+        this.lastResendAt = Instant.now();
+
+        touch();
+    }
 }

@@ -78,6 +78,7 @@ public class UserDevice extends Entity {
         }
 
         this.status = DeviceStatus.TRUSTED;
+
         touch();
     }
 

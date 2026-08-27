@@ -4,22 +4,26 @@ import frandev.api.infra.security.encript.HasherService;
 import frandev.api.modules.auth.application.dto.in.LoginDto;
 import frandev.api.modules.auth.application.dto.out.AuthedData;
 import frandev.api.modules.auth.application.exceptions.InvalidCredentials;
+import frandev.api.modules.auth.application.exceptions.UserInactiveError;
 import frandev.api.modules.auth.application.ports.LoginIdentity;
 import frandev.api.modules.auth.entities.AuthData;
+import frandev.api.modules.auth.entities.ChallangeContext;
 import frandev.api.modules.auth.services.CreateSessionService;
 import frandev.api.modules.auth.services.DeviceResolveService;
-import frandev.api.modules.auth.services.SendLoginChallenge;
+import frandev.api.modules.auth.services.SendChallenge;
 import frandev.api.shared.entities.AppResponse;
 import frandev.api.shared.entities.Hash;
 import frandev.api.shared.ports.UseCase;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 public class LoginUseCase implements UseCase<LoginDto, AuthedData> {
 
     private final DeviceResolveService deviceResolveService;
     private final FindUserUseCase findUserUseCase;
-    private final SendLoginChallenge sendLoginChallenge;
+    private final SendChallenge sendLoginChallenge;
     private final CreateSessionService createSessionService;
     private final HasherService hasherService;
 
@@ -27,7 +31,7 @@ public class LoginUseCase implements UseCase<LoginDto, AuthedData> {
             HasherService hasherService,
             FindUserUseCase findUserUseCase,
             DeviceResolveService deviceResolveService,
-            SendLoginChallenge sendLoginChallenge,
+            SendChallenge sendLoginChallenge,
             CreateSessionService createSessionService
     ) {
         this.hasherService = hasherService;
@@ -48,6 +52,10 @@ public class LoginUseCase implements UseCase<LoginDto, AuthedData> {
         final AuthData userData =
                 loginIdentity.authData();
 
+        if(!userData.active()){
+            throw new UserInactiveError();
+        }
+
         validatePassword(
                 loginDto.password(),
                 userData.passwordHash()
@@ -62,22 +70,35 @@ public class LoginUseCase implements UseCase<LoginDto, AuthedData> {
 
         if (deviceResult.requiresChallenge()) {
 
-            sendLoginChallenge.execute(
+            UUID challangeId = sendLoginChallenge.execute(
                     userData.id(),
                     deviceResult.userDeviceId(),
                     loginIdentity.channel(),
+                    ChallangeContext.LOGIN_NEW_DEVICE,
                     userUnique
             );
 
-            return AppResponse.message(
-                    "Challenge sent successfully"
+            final AppResponse<AuthedData> response = new AppResponse<AuthedData>(
+                    new AuthedData(
+                            userData.id(),
+                            null,
+                            null,
+                            null,
+                            challangeId
+                    ),
+                    true,
+                    "Challenge sent successfully",
+                    200
             );
+
+            return response;
         }
 
         return createSessionService.execute(
                 userData,
                 deviceResult.userDeviceId(),
-                loginDto
+                loginDto.deviceId(),
+                loginDto.ip()
         );
     }
 
@@ -93,4 +114,5 @@ public class LoginUseCase implements UseCase<LoginDto, AuthedData> {
             throw new InvalidCredentials();
         }
     }
+
 }

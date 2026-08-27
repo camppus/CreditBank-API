@@ -9,6 +9,7 @@ public record AuthedData(
         UUID userId,
         String refresh,
         String acessToken,
-        Instant expiresAt
+        Instant expiresAt,
+        UUID challangeId
 ) {
 }

@@ -9,6 +9,7 @@ import frandev.api.modules.auth.entities.Session;
 import frandev.api.modules.auth.entities.SessionStatus;
 import frandev.api.modules.auth.repositories.SessionRepository;
 import frandev.api.shared.entities.AppResponse;
+import frandev.api.shared.entities.IpAddress;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -32,7 +33,9 @@ public class CreateSessionService {
     public AppResponse<AuthedData> execute(
             AuthData userData,
             UUID userDeviceId,
-            LoginDto loginDto
+            UUID deviceId,
+            IpAddress ip
+
     ) {
 
         GenerateRefreshHash.GeneratedRefreshToken refresh =
@@ -54,7 +57,7 @@ public class CreateSessionService {
                 SessionStatus.ACTIVE,
                 sessionExpiresAt,
                 null,
-                loginDto.ip(),
+                ip,
                 now,
                 now
         );
@@ -70,7 +73,7 @@ public class CreateSessionService {
         String token = jwtService.sign(
                 session.getUserId(),
                 userData.id(),
-                loginDto.deviceId(),
+                deviceId,
                 userDeviceId,
                 accessTokenExpiresAt
         );
@@ -79,7 +82,8 @@ public class CreateSessionService {
                 userData.id(),
                 refresh.token(),
                 token,
-                accessTokenExpiresAt
+                accessTokenExpiresAt,
+                null
         );
 
         return AppResponse.sucess(

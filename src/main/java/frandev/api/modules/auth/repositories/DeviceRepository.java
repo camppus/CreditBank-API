@@ -15,6 +15,8 @@ public interface DeviceRepository {
     public Pageable<Device> findAll(Pagination pagination);
     public Pageable<Device> findAllByUserId(UUID userId);
     public UUID saveDevice(Device device);
+
     public List<UserDevice> findAllUserDevicesByUserId(UUID userId);
+    public Optional<UserDevice> findUserDeviceById(UUID userId);
     public void saveUserDevice(UserDevice device);
 }

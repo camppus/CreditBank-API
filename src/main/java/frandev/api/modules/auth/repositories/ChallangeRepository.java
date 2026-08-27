@@ -6,5 +6,5 @@ import java.util.UUID;
 
 public interface ChallangeRepository {
     public void save(Challenge challenge);
-    public Optional<Challenge> findByHashCode(String hashCode);
+    public Optional<Challenge> findById(UUID id);
 }

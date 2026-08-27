@@ -10,6 +10,8 @@ import frandev.api.shared.entities.Phone;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @AllArgsConstructor
 @Service
 public class FindUserUseCase {
@@ -43,5 +45,11 @@ public class FindUserUseCase {
         throw new IllegalArgumentException(
                 "Precisas informar um email ou número de telefone válido"
         );
+    }
+    public AuthData executeById(UUID id) throws Exception {
+
+        return this.authRepository
+                .findUserById(id)
+                .orElseThrow(()-> new IllegalArgumentException("User not found"));
     }
 }

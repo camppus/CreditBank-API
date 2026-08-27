@@ -20,28 +20,22 @@ import java.util.UUID;
 
 
 @Component
-public class SendLoginChallenge {
+public class SendChallenge {
 
 
     private final ChallangeRepository challangeRepository;
     private  final ChallengeCodeGenerator  challengeCodeGenerator;
     private final HasherService hasherService;
-    private final List<ChallengeSenderApter> challengeSenders;
-    private  final GenerateRefreshHash generateRefreshHash;
     private final Map<ChallengeChannel, ChallengeSenderApter> senderMap = new EnumMap<>(ChallengeChannel.class);
 
-    public SendLoginChallenge(ChallangeRepository challangeRepository,
-          ChallengeCodeGenerator challengeCodeGenerator,
-          HasherService hasherService,
-          List<ChallengeSenderApter> challengeSenders,
-          GenerateRefreshHash generateRefreshHash) {
+    public SendChallenge(ChallangeRepository challangeRepository,
+                         ChallengeCodeGenerator challengeCodeGenerator, HasherService hasherService,
+                         List<ChallengeSenderApter> challengeSenders, GenerateRefreshHash generateRefreshHash )
+    {
 
         this.challangeRepository = challangeRepository;
         this.challengeCodeGenerator = challengeCodeGenerator;
         this.hasherService = hasherService;
-        this.challengeSenders = challengeSenders;
-        this.generateRefreshHash = generateRefreshHash;
-
         for(ChallengeSenderApter challengeSender : challengeSenders) {
             this.senderMap.put(
                     challengeSender.channel(),
@@ -50,10 +44,11 @@ public class SendLoginChallenge {
         }
     }
 
-    public void execute(
+    public UUID execute(
             UUID userId,
             UUID userDeviceId,
             ChallengeChannel channel,
+            ChallangeContext context,
             String destination
     ) throws Exception {
 
@@ -77,7 +72,10 @@ public class SendLoginChallenge {
                 expiresAt,
                 false,
                 0,
-                ChallangeContext.LOGIN_NEW_DEVICE,
+                0,
+                null,
+                context,
+                channel,
                 now,
                 now
         );
@@ -106,6 +104,59 @@ public class SendLoginChallenge {
                     "Challenge not sent successfully"
             );
         }
+
+        return  challenge.getId();
+    }
+
+    public void resend(
+            Challenge challenge,
+            String destination
+    ) throws Exception {
+
+        challenge.isResendAllowed();
+        String code = challengeCodeGenerator.generate();
+
+        Hash hash = hasherService.hash(code);
+
+        Instant now = Instant.now();
+
+        Instant expiresAt = now.plus(
+                Duration.ofMinutes(
+                        AuthConsts.CHALLENGE_EXPIRATION_MINUTES
+                )
+        );
+
+        challenge.resend(
+                hash,
+                expiresAt
+        );
+
+        ChallengeSenderApter sender = senderMap.get(
+                challenge.getChannel()
+        );
+
+        if (sender == null) {
+            throw new IllegalAccessException(
+                    "Sender challenge not found"
+            );
+        }
+
+        SendChallangePayload payload =
+                new SendChallangePayload(
+                        destination,
+                        code,
+                        expiresAt
+                );
+
+        boolean sent = sender.send(payload);
+
+        if (!sent) {
+            throw new Exception(
+                    "Challenge not sent successfully"
+            );
+        }
+
+        challangeRepository.save(challenge);
     }
 
 }

@@ -80,6 +80,11 @@ public class DeviceResolveService {
             );
         }
 
+        trustedDevice.ifPresent(userDevice -> {
+            userDevice.updateIpAddress(ip);
+            this.deviceRepository.saveUserDevice(userDevice);
+        });
+
         return new UserDeviceResult(
                 trustedDevice.get().getId(),
                 false
