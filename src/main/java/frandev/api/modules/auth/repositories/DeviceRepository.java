@@ -1,5 +1,6 @@
 package frandev.api.modules.auth.repositories;
 
+import frandev.api.modules.auth.application.dto.out.CurrentSessionDto;
 import frandev.api.modules.auth.entities.Device;
 import frandev.api.modules.auth.entities.UserDevice;
 import frandev.api.shared.entities.Pageable;

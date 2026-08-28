@@ -1,7 +1,6 @@
 package frandev.api.modules.auth.application.dto.out;
 
 import frandev.api.shared.entities.Hash;
-
 import java.time.Instant;
 import java.util.UUID;
 

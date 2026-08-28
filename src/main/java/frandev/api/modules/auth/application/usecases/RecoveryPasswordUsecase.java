@@ -27,7 +27,6 @@ public class RecoveryPasswordUsecase implements UseCase<RecoveryPasswordDto, App
         this.findUserUseCase = findUserUseCase;
     }
 
-
     @Override
     public AppResponse execute(RecoveryPasswordDto recoveryPasswordDto) throws Exception {
 
@@ -52,13 +51,8 @@ public class RecoveryPasswordUsecase implements UseCase<RecoveryPasswordDto, App
             throw  new IllegalAccessException("OTP verification failed");
         }
 
-
         Password password = new Password(recoveryPasswordDto.password());
         Hash passwordHash = this.hasherService.hash(password.getValue());
-
-        // atualizar password aqui
-        // authRepository.updatePassword(userData.id(), passwordHash);
-
         challenge.use();
         this.challangeRepository.save(challenge);
 

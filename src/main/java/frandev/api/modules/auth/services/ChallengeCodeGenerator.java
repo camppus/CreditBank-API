@@ -1,7 +1,6 @@
 package frandev.api.modules.auth.services;
 
 import org.springframework.stereotype.Component;
-
 import java.security.SecureRandom;
 
 @Component

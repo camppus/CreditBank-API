@@ -1,5 +1,7 @@
 package frandev.api.modules.auth.application.constants;
 
+import java.util.UUID;
+
 public final class AuthConsts {
 
     private AuthConsts() {
@@ -11,8 +13,12 @@ public final class AuthConsts {
     public static final int SESSION_EXPIRATION_MINUTES = 30;
     public static final int REFRESH_TOKEN_EXPIRATION_DAYS = 30;
     public static final int MAX_LOGIN_ATTEMPTS = 5;
-    public  static  final  int MAX_CHALLENGE_RESENDS = 3;
+    public static  final  int MAX_CHALLENGE_RESENDS = 3;
     public static final int PASSWORD_MIN_LENGTH = 8;
     public static final int RESEND_COOLDOWN_SECONDS = 60;
     public static final int DEVICE_TRUST_EXPIRATION_DAYS = 30;
+    private static final String SESSION_CACHE_KEY = "session-";
+    public static String sessionKey(UUID sessionId) {
+        return SESSION_CACHE_KEY + sessionId;
+    }
 }

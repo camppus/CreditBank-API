@@ -1,5 +1,6 @@
 package frandev.api.modules.auth.application.usecases;
 
+import frandev.api.infra.cache.CacheProvider;
 import frandev.api.infra.security.encript.HasherService;
 import frandev.api.modules.auth.application.dto.in.LoginDto;
 import frandev.api.modules.auth.application.dto.out.AuthedData;
@@ -32,7 +33,7 @@ public class LoginUseCase implements UseCase<LoginDto, AuthedData> {
             FindUserUseCase findUserUseCase,
             DeviceResolveService deviceResolveService,
             SendChallenge sendLoginChallenge,
-            CreateSessionService createSessionService
+            CreateSessionService createSessionService, CacheProvider cacheProvider
     ) {
         this.hasherService = hasherService;
         this.findUserUseCase = findUserUseCase;

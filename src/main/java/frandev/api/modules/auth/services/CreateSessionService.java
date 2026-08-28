@@ -1,9 +1,11 @@
 package frandev.api.modules.auth.services;
 
+import frandev.api.infra.cache.CacheProvider;
 import frandev.api.infra.security.jwt.JwtService;
 import frandev.api.modules.auth.application.constants.AuthConsts;
 import frandev.api.modules.auth.application.dto.in.LoginDto;
 import frandev.api.modules.auth.application.dto.out.AuthedData;
+import frandev.api.modules.auth.application.ports.SessionCached;
 import frandev.api.modules.auth.entities.AuthData;
 import frandev.api.modules.auth.entities.Session;
 import frandev.api.modules.auth.entities.SessionStatus;
@@ -22,11 +24,17 @@ public class CreateSessionService {
     private final JwtService jwtService;
     private final GenerateRefreshHash generateRefreshHash;
     private final SessionRepository sessionRepository;
+    private  final CacheProvider cacheProvider;
 
-    public CreateSessionService(JwtService jwtService, GenerateRefreshHash generateRefreshHash, SessionRepository sessionRepository) {
+
+    public CreateSessionService(
+            JwtService jwtService, GenerateRefreshHash generateRefreshHash,
+            SessionRepository sessionRepository, CacheProvider cacheProvider)
+    {
         this.jwtService = jwtService;
         this.generateRefreshHash = generateRefreshHash;
         this.sessionRepository = sessionRepository;
+        this.cacheProvider = cacheProvider;
     }
 
 
@@ -86,6 +94,15 @@ public class CreateSessionService {
                 null
         );
 
+        String sessionKey = AuthConsts.sessionKey(session.getId());
+        SessionCached sessionCached = new  SessionCached(
+                true
+        );
+        this.cacheProvider.set(sessionKey, sessionCached,
+                Duration.between(
+                Instant.now(),
+                session.getExpiresAt())
+        );
         return AppResponse.sucess(
                 "Login successfully",
                 data
